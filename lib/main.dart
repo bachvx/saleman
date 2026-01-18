@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'services/storage_service.dart';
 import 'services/sample_data_service.dart';
+import 'services/auth/auth_provider.dart';
+import 'screens/auth/splash_screen.dart';
+import 'screens/auth/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/customers_screen.dart';
 import 'screens/orders_screen.dart';
@@ -24,30 +28,50 @@ class SalesMasterApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sales Master',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1976D2), // Blue color matching the design
-          brightness: Brightness.light,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: MaterialApp(
+        title: 'Sales Master',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1976D2), // Blue color matching the design
+            brightness: Brightness.light,
+          ),
+          cardTheme: CardThemeData(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          appBarTheme: const AppBarTheme(
+            centerTitle: false,
+            elevation: 0,
+          ),
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            elevation: 4,
           ),
         ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-        ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          elevation: 4,
+        home: Consumer<AuthProvider>(
+          builder: (context, authProvider, _) {
+            // Show splash screen during initialization
+            if (authProvider.session.user == null && 
+                !authProvider.session.isAuthenticated &&
+                authProvider.session.lastActivity == null) {
+              return const SplashScreen();
+            }
+            
+            // Show login screen if not authenticated
+            if (!authProvider.isAuthenticated) {
+              return const LoginScreen();
+            }
+            
+            // Show main app if authenticated
+            return const MainScreen();
+          },
         ),
       ),
-      home: const MainScreen(),
     );
   }
 }
@@ -114,6 +138,9 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             _currentIndex = index;
           });
+          
+          // Update activity timestamp
+          Provider.of<AuthProvider>(context, listen: false).updateActivity();
         },
         destinations: const [
           NavigationDestination(

@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import '../services/auth/auth_provider.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildProfileCard(context),
-        const SizedBox(height: 24),
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final user = authProvider.currentUser;
+        
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildProfileCard(context, user?.name, user?.email),
+            const SizedBox(height: 24),
         _buildSectionTitle('Sales Tools'),
         _buildMenuItem(
           context,
@@ -109,6 +115,34 @@ class MoreScreen extends StatelessWidget {
           },
         ),
         const SizedBox(height: 24),
+        
+        // Logout Button
+        Card(
+          elevation: 1,
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            leading: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.logout, color: Colors.red),
+            ),
+            title: const Text(
+              'Logout',
+              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red),
+            ),
+            subtitle: const Text(
+              'Sign out from your account',
+              style: TextStyle(fontSize: 12),
+            ),
+            trailing: const Icon(Icons.chevron_right, color: Colors.red),
+            onTap: () => _handleLogout(context),
+          ),
+        ),
+        const SizedBox(height: 24),
         Center(
           child: Text(
             'Version 1.0.0',
@@ -124,9 +158,11 @@ class MoreScreen extends StatelessWidget {
         ),
       ],
     );
+      },
+    );
   }
 
-  Widget _buildProfileCard(BuildContext context) {
+  Widget _buildProfileCard(BuildContext context, String? userName, String? userEmail) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -137,7 +173,9 @@ class MoreScreen extends StatelessWidget {
               radius: 36,
               backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
               child: Text(
-                'JS',
+                userName != null && userName.isNotEmpty
+                    ? userName.substring(0, 1).toUpperCase()
+                    : 'U',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -150,27 +188,35 @@ class MoreScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'John Smith',
-                    style: TextStyle(
+                  Text(
+                    userName ?? 'User',
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Sales Representative',
+                    userEmail ?? 'No email',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'ID: REP001',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Odoo User',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -342,5 +388,49 @@ class MoreScreen extends StatelessWidget {
         ),
       );
     });
+  }
+
+  void _handleLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+
+              // Logout
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.logout();
+
+              // Close loading
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
   }
 }
