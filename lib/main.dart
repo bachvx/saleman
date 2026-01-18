@@ -55,12 +55,12 @@ class SalesMasterApp extends StatelessWidget {
         ),
         home: Consumer<AuthProvider>(
           builder: (context, authProvider, _) {
-            // Show splash screen during initialization
-            if (authProvider.session.user == null && 
-                !authProvider.session.isAuthenticated &&
-                authProvider.session.lastActivity == null) {
-              return const SplashScreen();
-            }
+            // Initialize auth provider on first build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (authProvider.session.lastActivity == null) {
+                authProvider.initialize();
+              }
+            });
             
             // Show login screen if not authenticated
             if (!authProvider.isAuthenticated) {
